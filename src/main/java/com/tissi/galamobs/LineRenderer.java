@@ -6,6 +6,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.util.Tuple;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
@@ -24,16 +25,16 @@ public class LineRenderer {
         // Start slightly in front of crosshair (feels better than exact eye)
         Vec3 start = eyePos.add(lookDir.scale(0.1));
         Vec3 end = new Vec3(targetX, targetY, targetZ);
-
-        drawLine(poseStack, buffer, start, end, cameraPos);
+        float r = 0.0f, g = 1.0f, b = 0.0f, a = 1.0f;
+        drawLine(poseStack, buffer, start, end, cameraPos,r,g,b,a);
     }
 
     // Lower-level drawing method with full control
-    public static void drawLine(PoseStack poseStack, MultiBufferSource buffer, Vec3 from, Vec3 to, Vec3 cameraPos) {
+    public static void drawLine(PoseStack poseStack, MultiBufferSource buffer, Vec3 from, Vec3 to, Vec3 cameraPos, float r, float g, float b, float a) {
         VertexConsumer builder = buffer.getBuffer(RenderType.LINES);
         Matrix4f matrix = poseStack.last().pose();
 
-        float r = 0.0f, g = 1.0f, b = 0.0f, a = 1.0f;
+//        float r = 0.0f, g = 1.0f, b = 0.0f, a = 1.0f;
 
         builder.addVertex(matrix,
                 (float) (from.x - cameraPos.x),

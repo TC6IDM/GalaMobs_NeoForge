@@ -23,13 +23,7 @@ public class MobESPClientKeyRegistrar {
 
     public static final KeyMapping toggleHideonleafESPKey = new KeyMapping(
             "key.galamobs.toggle_hideonleaf_esp", // translation key
-            GLFW.GLFW_KEY_F5,          // key
-            "key.categories.misc"      // category
-    );
-
-    public static final KeyMapping toggleHideonleafWarpKey = new KeyMapping(
-            "key.galamobs.toggle_hideonleaf_warp", // translation key
-            GLFW.GLFW_KEY_F9,          // key
+            GLFW.GLFW_KEY_F8,          // key
             "key.categories.misc"      // category
     );
 
@@ -38,6 +32,5 @@ public class MobESPClientKeyRegistrar {
         event.register(toggleShellwiseESPKey);
         event.register(toggleShellwiseWarpKey);
         event.register(toggleHideonleafESPKey);
-        event.register(toggleHideonleafWarpKey);
     }
 }

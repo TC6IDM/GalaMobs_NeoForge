@@ -36,13 +36,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MobESPClientTickHandler {
     // Reference toggleESPKey from MobESPClientKeyRegistrar
     private static boolean shellwiseEspEnabled = false;
+    private static boolean hideonleafEspEnabled = false;
     private static boolean shellwiseWarpLoopEnabled = false;
     private static long lastWarpTime = 0;
     private static boolean inGalatea = false;
     public static int upper = 7000;
     public static int lower = 5000;
     private static int r = 6000;
-    public static final ConcurrentHashMap<UUID, Vec3> trackedEntities = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<UUID, Vec3> trackedShellwise = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<UUID, Vec3> trackedHideonleaf = new ConcurrentHashMap<>();
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
@@ -52,20 +54,7 @@ public class MobESPClientTickHandler {
         if (mc.level == null) return;  // Make sure the world is loaded, or else skip
 
 
-//        System.out.println("ParticleEngine is: " + mc.particleEngine.getClass().getName());
-//        ParticleEngine engine = Minecraft.getInstance().particleEngine;
-//
-//        if (engine instanceof ParticleEngineAccessor accessor) {
-//            Map<Integer, Particle> particles = accessor.getParticles();
-//            System.out.println("Particles: " + particles.size());
-//        } else {
-//            System.out.println("ParticleEngine is not a mixin accessor!");
-//        }
-//        ParticleEngineAccessor accessor =
-//        List<Particle> particles = accessor.getParticles();
-//
-//        System.out.println(particles.size());
-
+        //Toggle warp loop
         if (MobESPClientKeyRegistrar.toggleShellwiseWarpKey.consumeClick()) {
             shellwiseWarpLoopEnabled = !shellwiseWarpLoopEnabled;
             System.out.println("Shellwise Warp Loop toggled: " + (shellwiseEspEnabled ? "ON" : "OFF"));
@@ -85,7 +74,7 @@ public class MobESPClientTickHandler {
 
 //        if (!shellwiseWarpLoopEnabled) return;
 
-        // Check if toggle key was pressed
+        // Toggle ESP
         if (MobESPClientKeyRegistrar.toggleShellwiseESPKey.consumeClick()) {
             shellwiseEspEnabled = !shellwiseEspEnabled;
             System.out.println("Shellwise ESP toggled: " + (shellwiseEspEnabled ? "ON" : "OFF"));
@@ -94,18 +83,33 @@ public class MobESPClientTickHandler {
             }
         }
 
-//        if (!shellwiseEspEnabled) return;
+        if (MobESPClientKeyRegistrar.toggleHideonleafESPKey.consumeClick()) {
+            hideonleafEspEnabled = !hideonleafEspEnabled;
+            System.out.println("Hideonleaf ESP toggled: " + (hideonleafEspEnabled ? "ON" : "OFF"));
+            if (mc.player != null) {
+                mc.player.displayClientMessage(Component.literal("§7[GalaMobs] §fHideonleaf §fESP toggle: " + (hideonleafEspEnabled ? "§aEnabled" : "§cDisabled")), false);
+            }
+        }
 
-        MobESPClientTickHandler.trackedEntities.clear(); // Clear old positions
+        MobESPClientTickHandler.trackedHideonleaf.clear(); // Clear old positions
+        MobESPClientTickHandler.trackedShellwise.clear(); // Clear old positions
 
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (shouldESP(e) && e instanceof LivingEntity le) {
+            if (e instanceof Shulker le) {
 //                System.out.println("Turtle" + le);
-                MobESPClientTickHandler.trackedEntities.put(le.getUUID(), le.position());
+                MobESPClientTickHandler.trackedHideonleaf.put(le.getUUID(), le.position());
 //                le.setGlowingTag(true);
             }
         }
-        boolean turtlesFound = MobESPClientTickHandler.trackedEntities.size() >= 1;
+
+        for (Entity e : mc.level.entitiesForRendering()) {
+            if (e instanceof Turtle le) {
+//                System.out.println("Turtle" + le);
+                MobESPClientTickHandler.trackedShellwise.put(le.getUUID(), le.position());
+//                le.setGlowingTag(true);
+            }
+        }
+        boolean turtlesFound = MobESPClientTickHandler.trackedShellwise.size() >= 1;
 
 //        long currentTime = System.currentTimeMillis();
 
@@ -137,28 +141,10 @@ public class MobESPClientTickHandler {
         }
     }
 
-//    @SubscribeEvent
-//    public static <T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>>
-//    void onRenderLivingPost(RenderLivingEvent.Post<T, S, M> event) {
-//         // Filter for turtles only
-//        if (!event.getRenderer().getModel().getClass().getSimpleName().equals("TurtleModel")) return;
-//
-//        Minecraft mc = Minecraft.getInstance();
-//        if (mc.player == null || mc.level == null) return;
-//
-//        PoseStack poseStack = event.getPoseStack();
-//        MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
-//
-//        for (Vec3 target : MobESPClientTickHandler.trackedEntities.values()) {
-//            LineRenderer.drawLineToPosition(poseStack, buffer, target.x, target.y + 1, target.z);
-//        }
-//
-//        buffer.endBatch();
-//    }
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
-        if (!shellwiseEspEnabled) return;
+        if (!shellwiseEspEnabled && !hideonleafEspEnabled) return;
 
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
 
@@ -169,15 +155,23 @@ public class MobESPClientTickHandler {
         MultiBufferSource.BufferSource buffer = mc.renderBuffers().bufferSource();
         Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
 
-        for (Vec3 target : MobESPClientTickHandler.trackedEntities.values()) {
-            Vec3 lookStart = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(0.1));
-            LineRenderer.drawLine(poseStack, buffer, lookStart, target, cameraPos);
+        if (shellwiseEspEnabled){
+            for (Vec3 target : MobESPClientTickHandler.trackedShellwise.values()) {
+                Vec3 lookStart = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(0.1));
+                float r = 0.8f, g = 0.0f, b = 1.0f, a = 1.0f;
+                LineRenderer.drawLine(poseStack, buffer, lookStart, target, cameraPos,r,g,b,a);
+            }
+        }
+
+        if (hideonleafEspEnabled) {
+            for (Vec3 target : MobESPClientTickHandler.trackedHideonleaf.values()) {
+                Vec3 lookStart = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(0.1));
+                float r = 0.66f, g = 1.0f, b = 0.0f, a = 1.0f;
+                LineRenderer.drawLine(poseStack, buffer, lookStart, target, cameraPos, r, g, b, a);
+            }
         }
 
         buffer.endBatch(); // Do this once per frame
     }
 
-    private static boolean shouldESP(Entity e) {
-        return e instanceof Turtle;
-    }
 }
