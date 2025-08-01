@@ -1,0 +1,12 @@
+modLoader = "javafml"
+loaderVersion = "[2,)" # or whatever matches NeoForge version
+license = "MIT"
+
+[[mods]]
+modId = "galamobs"
+version = "1.0.3"
+displayName = "GalaMobs"
+description = "ESP and automation for turtles & fireworks"
+
+[[mixins]]
+config = "galamobs.mixins.json"

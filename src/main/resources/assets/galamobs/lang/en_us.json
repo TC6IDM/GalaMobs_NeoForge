@@ -1,0 +1,13 @@
+{
+  "itemGroup.galamobs": "Example Mod Tab",
+  "block.galamobs.example_block": "Example Block",
+  "item.galamobs.example_item": "Example Item",
+
+  "galamobs.configuration.title": "GalaMobs Configs",
+  "galamobs.configuration.section.galamobs.common.toml": "GalaMobs Configs",
+  "galamobs.configuration.section.galamobs.common.toml.title": "GalaMobs Configs",
+  "galamobs.configuration.items": "Item List",
+  "galamobs.configuration.logDirtBlock": "Log Dirt Block",
+  "galamobs.configuration.magicNumberIntroduction": "Magic Number Text",
+  "galamobs.configuration.magicNumber": "Magic Number"
+}

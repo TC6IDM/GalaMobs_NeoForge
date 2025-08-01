@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.tissi.galamobs.mixin",
+  "refmap": "galamobs.refmap.json",
+  "target": "@env(DEFAULT)",
+  "mixins": [
+    "MixinParticleEngine"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
