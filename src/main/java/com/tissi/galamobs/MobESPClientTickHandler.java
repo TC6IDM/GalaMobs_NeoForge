@@ -1,16 +1,20 @@
 package com.tissi.galamobs;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.sun.jna.platform.win32.WinGDI;
 import com.tissi.galamobs.mixin.ParticleEngineAccessor;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.ColorRGBA;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.Turtle;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.phys.Vec3;
@@ -19,9 +23,12 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.RenderLivingEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import org.checkerframework.checker.units.qual.C;
+import org.w3c.dom.css.RGBColor;
 
 
 import java.util.List;
@@ -37,6 +44,8 @@ public class MobESPClientTickHandler {
     // Reference toggleESPKey from MobESPClientKeyRegistrar
     private static boolean shellwiseEspEnabled = false;
     private static boolean hideonleafEspEnabled = false;
+    private static boolean jawbusEspEnabled = false;
+    private static boolean boxesEnabled = true;
     private static boolean shellwiseWarpLoopEnabled = false;
     private static long lastWarpTime = 0;
     private static boolean inGalatea = false;
@@ -45,6 +54,7 @@ public class MobESPClientTickHandler {
     private static int r = 6000;
     public static final ConcurrentHashMap<UUID, Vec3> trackedShellwise = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<UUID, Vec3> trackedHideonleaf = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<UUID, Vec3> trackedJawbus = new ConcurrentHashMap<>();
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
@@ -52,7 +62,6 @@ public class MobESPClientTickHandler {
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;  // Make sure the world is loaded, or else skip
-
 
         //Toggle warp loop
         if (MobESPClientKeyRegistrar.toggleShellwiseWarpKey.consumeClick()) {
@@ -91,29 +100,45 @@ public class MobESPClientTickHandler {
             }
         }
 
+        if (MobESPClientKeyRegistrar.toggleJawbusESPKey.consumeClick()) {
+            jawbusEspEnabled = !jawbusEspEnabled;
+            System.out.println("Jawbus ESP toggled: " + (jawbusEspEnabled ? "ON" : "OFF"));
+            if (mc.player != null) {
+                mc.player.displayClientMessage(Component.literal("§7[GalaMobs] §dJawbus §fESP toggle: " + (jawbusEspEnabled ? "§aEnabled" : "§cDisabled")), false);
+            }
+        }
+
+        if (MobESPClientKeyRegistrar.toggleBoxKey.consumeClick()) {
+            boxesEnabled = !boxesEnabled;
+            System.out.println("Jawbus ESP toggled: " + (boxesEnabled ? "ON" : "OFF"));
+            if (mc.player != null) {
+                mc.player.displayClientMessage(Component.literal("§7[GalaMobs] §fBox toggle: " + (boxesEnabled ? "§aEnabled" : "§cDisabled")), false);
+            }
+        }
+
         MobESPClientTickHandler.trackedHideonleaf.clear(); // Clear old positions
         MobESPClientTickHandler.trackedShellwise.clear(); // Clear old positions
+        MobESPClientTickHandler.trackedJawbus.clear(); // Clear old positions
 
         for (Entity e : mc.level.entitiesForRendering()) {
             if (e instanceof Shulker le) {
-//                System.out.println("Turtle" + le);
                 MobESPClientTickHandler.trackedHideonleaf.put(le.getUUID(), le.position());
-//                le.setGlowingTag(true);
             }
         }
 
         for (Entity e : mc.level.entitiesForRendering()) {
             if (e instanceof Turtle le) {
-//                System.out.println("Turtle" + le);
                 MobESPClientTickHandler.trackedShellwise.put(le.getUUID(), le.position());
-//                le.setGlowingTag(true);
             }
         }
-        boolean turtlesFound = MobESPClientTickHandler.trackedShellwise.size() >= 1;
 
-//        long currentTime = System.currentTimeMillis();
+        for (Entity e : mc.level.entitiesForRendering()) {
+            if (e instanceof IronGolem le) {
+                MobESPClientTickHandler.trackedJawbus.put(le.getUUID(), le.position());
+            }
+        }
+        boolean turtlesFound = !MobESPClientTickHandler.trackedShellwise.isEmpty();
 
-//        System.out.println(mc.player.tickCount - lastWarpTime);
         long now = System.currentTimeMillis();
 
         if (shellwiseWarpLoopEnabled && !turtlesFound && mc.player != null && (now - lastWarpTime) > r ){
@@ -144,7 +169,7 @@ public class MobESPClientTickHandler {
 
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
-        if (!shellwiseEspEnabled && !hideonleafEspEnabled) return;
+        if (!shellwiseEspEnabled && !hideonleafEspEnabled && !jawbusEspEnabled) return;
 
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) return;
 
@@ -158,20 +183,77 @@ public class MobESPClientTickHandler {
         if (shellwiseEspEnabled){
             for (Vec3 target : MobESPClientTickHandler.trackedShellwise.values()) {
                 Vec3 lookStart = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(0.1));
-                float r = 0.8f, g = 0.0f, b = 1.0f, a = 1.0f;
-                LineRenderer.drawLine(poseStack, buffer, lookStart, target, cameraPos,r,g,b,a);
+                RGBAColour colour = new RGBAColour(0.8f, 0.0f,1.0f, 1.0f);
+                LineRenderer.drawLine(poseStack, buffer, lookStart, target, cameraPos,colour);
+                Vec3 boxVec = new Vec3(1.2,0.4,1.2);
+                if (boxesEnabled) LineRenderer.drawBox(poseStack,buffer,target,cameraPos,boxVec,colour);
             }
         }
 
         if (hideonleafEspEnabled) {
             for (Vec3 target : MobESPClientTickHandler.trackedHideonleaf.values()) {
                 Vec3 lookStart = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(0.1));
-                float r = 0.66f, g = 1.0f, b = 0.0f, a = 1.0f;
-                LineRenderer.drawLine(poseStack, buffer, lookStart, target, cameraPos, r, g, b, a);
+                RGBAColour colour = new RGBAColour(0.66f, 1.0f,0.0f, 1.0f);
+                LineRenderer.drawLine(poseStack, buffer, lookStart, target, cameraPos, colour);
+                Vec3 boxVec = new Vec3(1,1,1);
+                if (boxesEnabled) LineRenderer.drawBox(poseStack,buffer,target,cameraPos,boxVec,colour);
+            }
+        }
+
+        if (jawbusEspEnabled) {
+            for (Vec3 target : MobESPClientTickHandler.trackedJawbus.values()) {
+                Vec3 lookStart = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(0.1));
+                RGBAColour colour = new RGBAColour(1.0f, 0.33f,1.0f, 1.0f);
+                LineRenderer.drawLine(poseStack, buffer, lookStart, target, cameraPos, colour);
+                Vec3 boxVec = new Vec3(1.4,2.7,1.4);
+                if (boxesEnabled) LineRenderer.drawBox(poseStack,buffer,target,cameraPos,boxVec,colour);
             }
         }
 
         buffer.endBatch(); // Do this once per frame
+    }
+
+
+    @SubscribeEvent
+    public static void onRenderGui(RenderGuiEvent.Post event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+        if (!jawbusEspEnabled) return;
+
+        var guiGraphics = event.getGuiGraphics();
+        String text = "LORD JAWBUS";
+
+        // Screen size
+        int screenWidth = mc.getWindow().getGuiScaledWidth();
+        int screenHeight = mc.getWindow().getGuiScaledHeight();
+
+        // Scale factor
+        float scale = 2.0f; // 2x bigger text
+
+        // Font metrics
+        int textWidth = mc.font.width(text);
+        int textHeight = mc.font.lineHeight;
+
+        // Adjusted center coordinates for scaled text
+        int x = (int) ((screenWidth / 2f) - (textWidth * scale / 2f));
+        int y = (int) ((screenHeight * 3 / 8f) - (textHeight * scale / 2f));
+
+        // Push pose and scale
+        var poseStack = guiGraphics.pose();
+        poseStack.pushPose();
+        poseStack.scale(scale, scale, scale);
+
+        // Because we scaled, divide coords by scale
+        guiGraphics.drawString(
+                mc.font,
+                text,
+                (int) (x / scale),
+                (int) (y / scale),
+                0xFF55FF,
+                true
+        );
+
+        poseStack.popPose();
     }
 
 }

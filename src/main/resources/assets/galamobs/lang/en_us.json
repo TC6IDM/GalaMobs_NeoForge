@@ -9,5 +9,13 @@
   "galamobs.configuration.items": "Item List",
   "galamobs.configuration.logDirtBlock": "Log Dirt Block",
   "galamobs.configuration.magicNumberIntroduction": "Magic Number Text",
-  "galamobs.configuration.magicNumber": "Magic Number"
+  "galamobs.configuration.magicNumber": "Magic Number",
+
+  "key.galamobs.toggle_shellwise_esp": "Toggle Shellwise ESP",
+  "key.galamobs.toggle_shellwise_warp": "Toggle Shellwise Auto-Warp",
+  "key.galamobs.toggle_hideonleaf_esp": "Toggle Hideonleaf ESP",
+  "key.galamobs.toggle_jawbus_esp": "Toggle Jawbus ESP",
+  "key.galamobs.toggle_box": "Toggle ESP Boxes",
+
+  "key.categories.galamobs": "GalaMobs"
 }
